@@ -1,14 +1,26 @@
 
 CC=gcc
-APP=bmp_clr_to_gs
+CFLAGS=-I.
+APP = bmp_clr_to_gs
 
-SOURCEDIR = src/
-BUILDDIR = build/
+ODIR = build
+LDIR = lib
+SDIR = src
 
-bmp_clr_to_gray: $(SOURCEDIR)bmp_clr_to_gray_scale.c
-	$(CC) -o $(BUILDDIR)$(APP) $(SOURCEDIR)bmp_clr_to_gray_scale.c
+_DEPS = lib_bmp.h
+DEPS = $(patsubst %, $(LDIR)/%,$(_DEPS))
+
+_OBJ = bmp_clr_to_gray_scale.o lib_bmp.o 
+OBJ = $(patsubst %, $(ODIR)/%,$(_OBJ))
+
+$(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+bmp_clr_to_gray: $(OBJ)
+	$(CC) -o $(ODIR)/$(APP) $^ $(CFLAGS)
 
 .PHONY: clean
 
 clean:
-	rm -fv $(BUILDDIR)$(APP)
+	rm -fv $(ODIR)/*.o bmp_clr_to_gray
+	rm -fv $(ODIR)/$(APP)
