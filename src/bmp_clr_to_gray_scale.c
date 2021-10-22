@@ -6,10 +6,6 @@
 
 #define MAX_FILE_PATH_N 4096
 
-#define DEBUG 1
-
-#define DEBUG_PRINT(fmt, ...) \
-    do { if (DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while(0)
 
 typedef struct opt_args {
     char in[MAX_FILE_PATH_N + 1];
@@ -41,8 +37,23 @@ main (int argc, char *argv[])
     
     DEBUG_PRINT("IN:%s\nOUT:%s\n",file_paths.in, file_paths.out);
 
+    fp = fopen(file_paths.in, "rb");
+    if (!fp) {
+        fprintf(stderr, "Failed to open %s\n", file_paths.in);
+        exit(2);
+    }
+
     bmp_header_t bmp;
-    print_bmp(&bmp);
+    int err = bmp_header_init(&bmp, fp);
+    if (err) {
+        fprintf(stderr, "%s is not a valid bmp file\n", file_paths.in);
+        exit(2);
+    }
+    if (DEBUG)
+        bmp_print_header(&bmp);
+
+    bmp_pixel_t bmp_pixel;
+    bmp_pixel_read(bmp.offset_b, 32, &bmp_pixel, fp);
 
     return 0;
 }
