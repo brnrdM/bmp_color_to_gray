@@ -52,12 +52,23 @@ bmp_header_init(bmp_header_t *bmp_hdr, FILE *fp)
 
     /* Read bpp */
     fseek(fp, 28, SEEK_SET);
-    if (fread(&(bmp_hdr->bpp), 4, 1, fp) != 1) {
+    if (fread(&(bmp_hdr->bpp), 2, 1, fp) != 1) {
         return 2;
     }
 
     if (bmp_hdr->bpp != 24) {
         fprintf(stderr,"bpp of %u is currently unsupported.", bmp_hdr->bpp);
+        return 2;
+    }
+
+    /* Read compress */
+    fseek(fp, 30, SEEK_SET);
+    if (fread(&(bmp_hdr->compress), 4, 1, fp) != 1) {
+        return 2;
+    }
+
+    if (bmp_hdr->compress != 0) {
+        fprintf(stderr,"compress algo of %u is currently unsupported.", bmp_hdr->bpp);
         return 2;
     }
 
@@ -74,7 +85,8 @@ bmp_print_header(bmp_header_t *bmp)
     printf("OFFSET: %u\n", bmp->offset_b);
     printf("WIDTH: %u\n", bmp->width);
     printf("HEIGHT: %u\n", bmp->height);
-    printf("BPP: %i\n", bmp->bpp);
+    printf("BPP: %u\n", bmp->bpp);
+    printf("COMPRESS: %u\n", bmp->compress);
 }
 
 void
@@ -101,14 +113,16 @@ bmp_pixel_read(int offset, int pixel_sz_bits, bmp_pixel_t *bmp_pixel, FILE *fp)
     
     DEBUG_PRINT("PIXEL FOUND: %x\n", bmp_pixel_bits);
 
-    unsigned int b_mask = 0b00000000111111111;
+    unsigned int r_mask = 0x00FF0000; 
+    bmp_pixel->r = (r_mask & bmp_pixel_bits) >> 16;
+    unsigned int g_mask = 0x0000FF00;
+    bmp_pixel->g = (g_mask & bmp_pixel_bits) >> 8;
+    unsigned int b_mask = 0x000000FF;
     bmp_pixel->b = (b_mask & bmp_pixel_bits);
-    unsigned int r_mask = 0b11111111000000000;
-    bmp_pixel->r = (r_mask & bmp_pixel_bits);
 
-    DEBUG_PRINT("R: %x\n", bmp_pixel->r);
-    DEBUG_PRINT("B: %x\n", bmp_pixel->b);
-    DEBUG_PRINT("G: %x\n", bmp_pixel->g);
+    DEBUG_PRINT("R: %x %d\n", bmp_pixel->r, bmp_pixel->r);
+    DEBUG_PRINT("G: %x %d\n", bmp_pixel->g, bmp_pixel->g);
+    DEBUG_PRINT("B: %x %d\n", bmp_pixel->b, bmp_pixel->b);
 
     rewind(fp);
 }

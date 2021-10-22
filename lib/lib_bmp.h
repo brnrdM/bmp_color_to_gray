@@ -12,13 +12,14 @@ typedef struct bmp_header {
     signed int width;
     signed int height;
     unsigned int bpp;
+    unsigned int compress;
 } bmp_header_t;
 
 typedef struct bmp_pixel {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char alpha;
+    unsigned int r;
+    unsigned int g;
+    unsigned int b;
+    unsigned int alpha;
 } bmp_pixel_t;
 
 typedef struct bmp_img
