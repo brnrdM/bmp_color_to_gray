@@ -1,0 +1,5 @@
+test
+*.bmp
+*.swp
+*.hex
+build/bmp_clr_to_gs
