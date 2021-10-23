@@ -5,6 +5,8 @@
 #define DEBUG_PRINT(fmt, ...) \
     do { if (DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while(0)
 
+#define PIXEL_BITS_SIZE 32
+
 typedef struct bmp_header {
     char BM[2];
     unsigned int size_b;
@@ -16,10 +18,10 @@ typedef struct bmp_header {
 } bmp_header_t;
 
 typedef struct bmp_pixel {
-    unsigned int r;
-    unsigned int g;
-    unsigned int b;
-    unsigned int alpha;
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
+    unsigned char alpha;
 } bmp_pixel_t;
 
 typedef struct bmp_img
@@ -38,4 +40,5 @@ void bmp_pixel_init(bmp_pixel_t *bmp_pixel,
 
 void bmp_print_header(bmp_header_t *bmp);
 int bmp_pixel_read(int offset, int pixel_sz_bits, bmp_pixel_t *bmp_pixel, FILE *fp);
-void bmp_convert_to_gs(bmp_header_t *bmp, FILE *fp);
+void bmp_convert_pixel_to_gs(bmp_pixel_t *pxl);
+void bmp_convert_to_gs(bmp_header_t *bmp, FILE *fp, FILE *fout);

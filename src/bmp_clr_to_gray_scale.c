@@ -4,8 +4,7 @@
 #include <string.h>
 #include "lib/lib_bmp.h"
 
-#define MAX_FILE_PATH_N 4096
-
+#define MAX_FILE_PATH_N 4095
 
 typedef struct opt_args {
     char in[MAX_FILE_PATH_N + 1];
@@ -20,7 +19,7 @@ main (int argc, char *argv[])
 {
     file_paths_t file_paths;
     memset(&file_paths, 0, sizeof(file_paths_t));
-    
+
     if (parse_args(argc, argv, &file_paths)) {
         print_usage(argv[0]);
         exit(1);
@@ -33,8 +32,7 @@ main (int argc, char *argv[])
     }
 
     FILE *fp;
-    size_t ret;
-    
+
     DEBUG_PRINT("IN:%s\nOUT:%s\n",file_paths.in, file_paths.out);
 
     fp = fopen(file_paths.in, "rb");
@@ -49,11 +47,22 @@ main (int argc, char *argv[])
         fprintf(stderr, "%s is not a valid bmp file\n", file_paths.in);
         exit(2);
     }
-    if (DEBUG)
+    if (DEBUG) {
         bmp_print_header(&bmp);
+    }
 
-    bmp_pixel_t bmp_pixel;
-    bmp_pixel_read(bmp.offset_b, 32, &bmp_pixel, fp);
+    FILE *fout;
+
+    fout = fopen(file_paths.out, "wb");
+    if (!fout) {
+        fprintf(stderr, "Failed to open %s\n", file_paths.out);
+        exit(2);
+    }
+
+    bmp_convert_to_gs(&bmp, fp, fout);
+
+    fclose(fout);
+    fclose(fp);
 
     return 0;
 }
@@ -63,7 +72,7 @@ parse_args(int argc, char **argv, file_paths_t *file_paths)
 {
     int c;
     opterr = 0;
-    
+
     while ((c = getopt(argc, argv, "i:o:h")) != -1) {
         switch (c) {
             case 'i':
@@ -79,7 +88,7 @@ parse_args(int argc, char **argv, file_paths_t *file_paths)
                 return 1;
         }
     }
-    
+
     return 0;
 }
 
