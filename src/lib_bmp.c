@@ -111,7 +111,7 @@ bmp_pixel_read(int offset, int pixel_sz_bits, bmp_pixel_t *bmp_pixel, FILE *fp)
     fseek(fp, offset, SEEK_SET);
 
     if ((ret = fread(&bmp_pixel_bits, pixel_sz_bits/8, 1, fp)) != 1) {
-        //fprintf(stderr,"Failed to read pixel\n");
+        fprintf(stderr,"Failed to read pixel\n");
         return 0;
     }
 
@@ -148,20 +148,12 @@ bmp_convert_pixel_to_gs(bmp_pixel_t *pxl)
 {
     if ( (pxl->r == 255) && (pxl->b == 255) && (pxl->g == 255) )
         return;
-    /* NTSC Formula */
-    unsigned char red = pxl->r * 0.299;
-    unsigned char grn = pxl->g * 0.587;
-    unsigned char blu = pxl->b * 0.114;
 
-    unsigned char biggest;
-    biggest = (red > grn) ? red : grn;
-    biggest = (biggest > blu) ? biggest : blu;
-
-    unsigned char smallest;
-    smallest = (red < grn) ? red : grn;
-    smallest = (smallest < blu) ? smallest : blu;
-
-    unsigned char desaturation = (biggest + smallest) / 2;
+    /* Luminosity Formula */
+    unsigned char desaturation = 0; 
+    desaturation += pxl->r * LUMINOSITY_MULTIPLIER_RED;
+    desaturation += pxl->g * LUMINOSITY_MULTIPLIER_GREEN;
+    desaturation += pxl->b * LUMINOSITY_MULTIPLIER_BLUE;
 
     bmp_pixel_init(
         pxl,
@@ -169,6 +161,7 @@ bmp_convert_pixel_to_gs(bmp_pixel_t *pxl)
         desaturation,
         desaturation
     );
+
     DEBUG_PRINT("gs_R: %x %d\n", pxl->r, pxl->r);
     DEBUG_PRINT("gs_G: %x %d\n", pxl->g, pxl->g);
     DEBUG_PRINT("gs_B: %x %d\n", pxl->b, pxl->b);
@@ -192,31 +185,32 @@ bmp_convert_to_gs(bmp_header_t *bmp, FILE *fp, FILE *fout)
     }
     printf("\n");
 
-    int pixel_array_size = bmp->width * bmp->height;
-    DEBUG_PRINT("PXL ARRAY SIZE: %i\n", pixel_array_size);
+    int row_size_b = bmp->bpp * bmp->width;
+    row_size_b += 31;
+    row_size_b /= 32;
+    row_size_b *= 4;
 
+    int pixel_array_size_b = row_size_b * bmp->height;
+    DEBUG_PRINT("PXL ARRAY SIZE (BYTES): %i\n", pixel_array_size_b);
+
+    // https://www.desmos.com/calculator/nxyplqmkeo 
     int bytes_in_pixel = bmp->bpp / 8;
-    unsigned char pad_bytes = 0;
+    unsigned char pad_byte = 0;
     unsigned long pixels_written = 0;
-    int padding_necessary = 0;
-    int num_pixels_till_pad = 0;
+    int pixel_array_size = bmp->height * bmp->width;
+    int num_pixels_till_pad = 1;
+    int num_padding_b = row_size_b - (bytes_in_pixel*bmp->width);
 
     /* Check if we need padding */
-    if ((bmp->width < 4) || (bmp->width % 4)) {
-        /* Subtract 1 because we are reading pixel outside of loop */
+    if (num_padding_b > 0) {
         num_pixels_till_pad = bmp->width;
-        padding_necessary = 1; 
-    } else {
-        num_pixels_till_pad = 1;
-        padding_necessary = 0; 
     }
-
-    int pixel_array_end = bmp->offset_b + (pixel_array_size * ((padding_necessary) ? 4 : 3)); 
+    /* Find the end of the pixel array */
+    int pixel_array_end = pixel_array_size_b + bmp->offset_b;
     DEBUG_PRINT("ENDPXL: %i\n", pixel_array_end);
 
-
     bmp_pixel_t bmp_pixel;
-    /* Copy Pixel */
+    /* Copy Pixels and convert to grayscale */
     ret_p = bmp_pixel_read(bmp->offset_b, bmp->bpp, &bmp_pixel, fp);
     ret_o = 1;
     while ((ret_p) && (index < pixel_array_end) && (ret_o)) {
@@ -224,19 +218,18 @@ bmp_convert_to_gs(bmp_header_t *bmp, FILE *fp, FILE *fout)
             /* Write Converted Pixel */
             bmp_convert_pixel_to_gs(&bmp_pixel);
             ret_o = fwrite(&bmp_pixel, bytes_in_pixel, 1, fout);
-            if (padding_necessary) {
+            if (num_padding_b > 0) {
                 num_pixels_till_pad -= 1;
             }
-            index += sizeof(bmp_pixel);
+            index += bytes_in_pixel;
             pixels_written += 1;
-        } else if (padding_necessary) {
-            printf("hello\n");
+        } else if (num_padding_b > 0) {
             /* Write Padding */
-            ret = fread(&pad_bytes, sizeof(pad_bytes), bmp->width, fp);
-            DEBUG_PRINT("PADDING %x\n", pad_bytes);
+            ret = fread(&pad_byte, sizeof(pad_byte), num_padding_b, fp);
+            ret_o = fwrite(&pad_byte, sizeof(pad_byte), num_padding_b, fout);
             num_pixels_till_pad = bmp->width;
-            ret_o = fwrite(&pad_bytes, sizeof(pad_bytes), bmp->width, fout);
-            index += bmp->width; 
+            index += num_padding_b; 
+            DEBUG_PRINT("PADDING %x\n", pad_byte);
         }
         DEBUG_PRINT(" %ld ", index);
         if (pixels_written < pixel_array_size) {

@@ -1,9 +1,26 @@
 #include <stdio.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define DEBUG_PRINT(fmt, ...) \
     do { if (DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while(0)
+
+#if 1
+/* NTSC Luma Coding*/
+#define LUMINOSITY_MULTIPLIER_RED   0.299
+#define LUMINOSITY_MULTIPLIER_GREEN 0.587
+#define LUMINOSITY_MULTIPLIER_BLUE  0.114
+#elif 0
+/* HDR TV Luma Coding*/
+#define LUMINOSITY_MULTIPLIER_RED   0.2627
+#define LUMINOSITY_MULTIPLIER_GREEN 0.6780
+#define LUMINOSITY_MULTIPLIER_BLUE  0.0593
+#else
+/* HDTV Luma Coding*/
+#define LUMINOSITY_MULTIPLIER_RED   0.2126
+#define LUMINOSITY_MULTIPLIER_GREEN 0.7152
+#define LUMINOSITY_MULTIPLIER_BLUE  0.0722
+#endif
 
 #define PIXEL_BITS_SIZE 24
 #define PIXEL_BYTE_SIZE 3

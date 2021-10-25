@@ -1,6 +1,6 @@
-
 CC=gcc
 CFLAGS=-I.
+#FOR DEBUG, ADD -g TO CFLAGS
 APP = bmp_clr_to_gs
 
 ODIR = build
